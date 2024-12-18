@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+  title: Order API
+  description: API for managing orders
+  version: 1.0.0
+paths:
+  /orders:
+    get:
+      summary: Get all orders
+      responses:
+        '200':
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    customer:
+                      type: string
+                    amount:
+                      type: number
+                      format: float
