@@ -8,17 +8,108 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model orders {
-  id       Int      @id @default(autoincrement())
-  customer String?  @db.VarChar(100)
-  amount   Decimal? @db.Decimal(10, 2)
+model User {
+  id         Int       @id @default(autoincrement())
+  email      String    @unique
+  name       String?   @db.VarChar(100) @map("full_name")
+  password   String
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+
+  orders     Order[]
+  roles      UserRole[] 
+
+  @@map("users")
 }
 
-model result {
-  id           Int       @id @default(autoincrement())
-  data_a_id    Int?
-  data_b_id    Int?
-  operator_id  Int?
-  result_value Decimal   @db.Decimal
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
+model Role {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique 
+  created_at DateTime  @default(now()) @map("created_at")
+  updated_at DateTime  @updatedAt @map("updated_at")
+
+  users      UserRole[] 
+
+  @@map("roles")
+}
+model UserRole {
+  user_id    Int
+  role_id    Int
+  created_at DateTime @default(now()) @map("created_at")
+
+  user       User     @relation(fields: [user_id], references: [id])
+  role       Role     @relation(fields: [role_id], references: [id])
+
+  @@id([user_id, role_id]) 
+  @@map("user_roles")
+}
+
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  Order Order[] 
+  @@map("products") 
+}
+
+model Order {
+  id            Int             @id @default(autoincrement())
+  user_id       Int?
+  product_id    Int?
+  status_id     Int?             
+  quantity      Int
+
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+
+  user          User?            @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  order_items   TransactionHistory[]  
+  payments      Payment[]  
+  status        OrderStatus?     @relation(fields: [status_id], references: [id], onDelete: SetNull)
+
+  product     Product?   @relation(fields: [product_id], references: [id], onDelete: SetNull)
+
+  @@map("orders")
+}
+
+model TransactionHistory {
+  id          Int      @id @default(autoincrement())
+  order_id    Int?
+  midtrans_order_id Int?
+  price       Decimal   @db.Decimal(10, 2) 
+  order       Order?     @relation(fields: [order_id], references: [id], onDelete: SetNull) 
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("transaction_history")
+}
+
+model Payment {
+  id             Int                  @id @default(autoincrement())
+  transaction_id Int?                 @unique
+  payment_type   String              
+  payment_status Int    
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  order_id       Int
+  order          Order                @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  @@map("payments")
+}
+
+
+model OrderStatus {
+  id      Int     @id @default(autoincrement())
+  status  String  @unique 
+  orders  Order[]
+  @@map("order_statuses")
 }

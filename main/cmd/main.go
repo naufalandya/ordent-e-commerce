@@ -1,11 +1,14 @@
 package main
 
 import (
+	"commerce/internal/app/middlewares"
 	"commerce/internal/app/routes"
-	repositories "commerce/internal/repositories"
+	"commerce/internal/repositories"
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -13,7 +16,17 @@ func main() {
 
 	app := fiber.New()
 
-	routes.OrderRoutes(app)
+	err := godotenv.Load("./config/.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	env := os.Getenv("ENV")
+	if env == "development" {
+		middlewares.SetupLogger(app)
+	}
+
+	routes.ApiV1Routes(app)
 
 	log.Fatal(app.Listen(":8080"))
 }
