@@ -7,7 +7,6 @@ import (
 )
 
 func BearerMiddleware(c *fiber.Ctx) error {
-	// Get the Authorization header
 	authHeader := c.Get("Authorization")
 
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
