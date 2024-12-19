@@ -3,7 +3,7 @@ package routes
 import (
 	"commerce/internal/app/middlewares"
 	"commerce/internal/features/auth"
-	"fmt"
+	"commerce/internal/features/product"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,6 +12,7 @@ func ApiV1Routes(app *fiber.App) {
 	v1 := app.Group("/api/v1")
 
 	authRoutes(v1)
+	productOperationRoutes(v1)
 }
 
 func authRoutes(v1 fiber.Router) {
@@ -24,8 +25,8 @@ func authRoutes(v1 fiber.Router) {
 	authRoute.Post("/signup", auth.SignupHandler)
 }
 
-func productRoutes(v1 fiber.Router) {
+func productOperationRoutes(v1 fiber.Router) {
 	productRoute := v1.Group("/product")
-
-	fmt.Println(productRoute)
+	//belum implementasi RBAC
+	productRoute.Post("/", middlewares.BearerTokenAuth, middlewares.RoleCheck([]string{"USER"}), product.CreateProductHandler)
 }

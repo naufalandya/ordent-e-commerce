@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	"github.com/jackc/pgx/v4"
 )
 
 func GetUserByEmail(email string) (*models.User, error) {
@@ -53,6 +55,15 @@ func GetUserByEmailReturnIDAndRole(email string) (*models.User, error) {
 }
 
 func CreateUser(user *models.User, roleID int) error {
+	ctx := context.Background()
+
+	tx, err := repositories.DB.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		log.Println("Error starting transaction:", err)
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	userQuery := `
 		INSERT INTO users (email, full_name, password, created_at, updated_at)
 		VALUES ($1, $2, $3, now(), now())
@@ -60,24 +71,28 @@ func CreateUser(user *models.User, roleID int) error {
 	`
 
 	var newUserID int
-	err := repositories.DB.QueryRow(context.Background(), userQuery, user.Email, user.Name, user.Password).Scan(&newUserID)
+	err = tx.QueryRow(ctx, userQuery, user.Email, user.Name, user.Password).Scan(&newUserID)
 	if err != nil {
 		log.Println("Error inserting user into database:", err)
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 
-	user.ID = newUserID
-
 	roleQuery := `
 		INSERT INTO user_roles (user_id, role_id, created_at)
 		VALUES ($1, $2, now());
 	`
-
-	_, err = repositories.DB.Exec(context.Background(), roleQuery, newUserID, roleID)
+	_, err = tx.Exec(ctx, roleQuery, newUserID, roleID)
 	if err != nil {
 		log.Println("Error assigning role to user:", err)
 		return fmt.Errorf("failed to assign role: %w", err)
 	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Println("Error committing transaction:", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	user.ID = newUserID
 
 	return nil
 }
