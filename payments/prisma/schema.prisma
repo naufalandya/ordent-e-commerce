@@ -53,6 +53,7 @@ model Product {
   user_id Int
   price       Decimal  @db.Decimal(10, 2)
   stock       Int
+  category    String   @default("N/A")
 
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt

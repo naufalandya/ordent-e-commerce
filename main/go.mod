@@ -15,6 +15,8 @@ require (
 
 require (
 	github.com/creasty/defaults v1.6.0 // indirect
+	github.com/gofiber/utils v0.0.10 // indirect
+	github.com/gorilla/schema v1.1.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	gopkg.in/validator.v2 v2.0.1 // indirect
 )
@@ -29,6 +31,7 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/gofiber/fiber v1.14.6
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/imagekit-developer/imagekit-go v0.0.0-20240521071536-1d7e6e67fcd7
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect

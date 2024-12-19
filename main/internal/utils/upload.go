@@ -10,6 +10,7 @@ import (
 
 	"commerce/internal/repositories"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/imagekit-developer/imagekit-go/api/uploader"
 )
 
@@ -62,4 +63,18 @@ func isValidFileType(fileName string) bool {
 
 	log.Printf("Unsupported file type: %s", fileName)
 	return false
+}
+
+const maxUploadFiles = 10
+
+func HandleFileUploads(c *fiber.Ctx) ([]string, error) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		return nil, fmt.Errorf("error parsing multipart form: %v", err)
+	}
+	files := form.File["images"]
+	if len(files) > maxUploadFiles {
+		return nil, fmt.Errorf("you can upload a maximum of %d files", maxUploadFiles)
+	}
+	return UploadImagesToImageKit(files)
 }
