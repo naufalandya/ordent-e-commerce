@@ -5,19 +5,16 @@ import (
 	"commerce/internal/features/auth/services"
 	"commerce/internal/utils"
 	"log"
-	"os"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/joho/godotenv"
 )
 
-func LoginHandler(c *fiber.Ctx) error {
+func SignupHandler(c *fiber.Ctx) error {
 	var requestBody struct {
 		Email    string `json:"email" validate:"required,email"`
 		Password string `json:"password" validate:"required,min=6"`
+		Name     string `json:"name" validate:"required"`
 	}
 
 	if err := c.BodyParser(&requestBody); err != nil {
@@ -45,6 +42,10 @@ func LoginHandler(c *fiber.Ctx) error {
 				} else if e.Tag() == "min" {
 					errorMessages = append(errorMessages, "Password must be at least 6 characters long.")
 				}
+			case "Name":
+				if e.Tag() == "required" {
+					errorMessages = append(errorMessages, "Name is required.")
+				}
 			}
 		}
 
@@ -60,71 +61,49 @@ func LoginHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	user, err := services.GetUserByEmailReturnIDAndRole(requestBody.Email)
+	_, err := services.GetUserByEmail(requestBody.Email)
+	if err == nil {
+		log.Println("Email already registered")
+		return c.Status(fiber.StatusConflict).JSON(models.ApiResponseFailed{
+			Status:  "error",
+			Message: "Email is already registered. Please use another email.",
+		})
+	}
+
+	hashedPassword, err := utils.HashPassword(requestBody.Password)
 	if err != nil {
-		log.Println("Error fetching user by email:", err)
-		if err.Error() == "user not found" {
-			return c.Status(fiber.StatusUnauthorized).JSON(models.ApiResponseFailed{
-				Status:  "error",
-				Message: "Invalid credentials, user not found.",
-			})
-		}
+		log.Println("Error hashing password:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseFailed{
 			Status:  "error",
-			Message: "Internal server error, please try again later.",
+			Message: "Internal server error while hashing password.",
 		})
 	}
 
-	if !utils.VerifyPassword(requestBody.Password, user.Password) {
-		log.Println("Password mismatch")
-		return c.Status(fiber.StatusUnauthorized).JSON(models.ApiResponseFailed{
-			Status:  "error",
-			Message: "Invalid credentials, incorrect password.",
-		})
+	newUser := models.User{
+		Email:    requestBody.Email,
+		Password: hashedPassword,
+		Name:     requestBody.Name,
 	}
 
-	if err := godotenv.Load("./config/.env"); err != nil {
-		log.Println("Error loading .env file:", err)
+	if err := services.CreateUser(&newUser, 1); err != nil {
+		log.Println("Error creating user:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseFailed{
 			Status:  "error",
-			Message: "Failed to load configuration. Please contact support.",
-		})
-	}
-
-	secretKey := os.Getenv("JWT_SECRET_KEY")
-	if secretKey == "" {
-		log.Println("JWT_SECRET_KEY is not set in .env file")
-		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseFailed{
-			Status:  "error",
-			Message: "Server configuration error. Please contact support.",
-		})
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"roles":   user.Role,
-		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		log.Println("Error generating JWT:", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseFailed{
-			Status:  "error",
-			Message: "Failed to generate token, please try again later.",
+			Message: "Failed to create user. Please try again later.",
 		})
 	}
 
 	response := models.ApiResponseSuccess{
 		Status:  "success",
-		Message: "Login successful",
+		Message: "Signup successful. Welcome to the platform!",
 		Data: map[string]interface{}{
-			"id":    user.ID,
-			"name":  user.Name,
-			"roles": user.Role,
-			"token": tokenString,
+			"user": map[string]interface{}{
+				"id":    newUser.ID,
+				"name":  newUser.Name,
+				"email": newUser.Email,
+			},
 		},
 	}
 
-	return c.JSON(response)
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
