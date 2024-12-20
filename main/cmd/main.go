@@ -29,6 +29,10 @@ func main() {
 		app.Use(logger.New())
 	}
 
+	// cek disini
+
+	// http://localhost:8080/swagger/index.html#
+
 	app.Static("/swagger", "./docs")
 
 	app.Get("/swagger/*", swagger.New(swagger.Config{

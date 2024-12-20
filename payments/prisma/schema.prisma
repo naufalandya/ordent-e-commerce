@@ -92,7 +92,6 @@ model Order {
 
   user          User?            @relation(fields: [user_id], references: [id], onDelete: SetNull)
   transactuib   TransactionHistory[]  
-  payments      Payment[]  
   status        OrderStatus?     @relation(fields: [status_id], references: [id], onDelete: SetNull)
 
   product     Product?   @relation(fields: [product_id], references: [id], onDelete: SetNull)
@@ -107,6 +106,7 @@ model TransactionHistory {
   payment String @default("N/A")
   total       Decimal   @db.Decimal(10, 2) 
   order       Order?     @relation(fields: [order_id], references: [id], onDelete: SetNull) 
+  status Boolean @default(false)
 
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -118,13 +118,10 @@ model Payment {
   id             Int                  @id @default(autoincrement())
   transaction_id Int?                 @unique
   payment_type   String              
-  payment_status Int    
+  payment_status String    
 
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-
-  order_id       Int
-  order          Order                @relation(fields: [order_id], references: [id], onDelete: Cascade)
   @@map("payments")
 }
 
@@ -135,3 +132,5 @@ model OrderStatus {
   orders  Order[]
   @@map("order_statuses")
 }
+
+

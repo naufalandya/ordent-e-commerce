@@ -102,8 +102,6 @@ func CreateOrderHandler(c *fiber.Ctx) error {
 
 	totalFloat64, exact := total.Float64()
 	if !exact {
-		// Handle the case where the conversion was not exact
-		// For example, you might want to log a warning or handle the precision loss
 		fmt.Println("Warning: Conversion from decimal to float64 was not exact")
 	}
 
