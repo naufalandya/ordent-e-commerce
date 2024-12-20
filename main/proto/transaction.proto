@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package TransactionService;
+
+option go_package = "./generated;TransactionService";
+
+service TransactionService {
+  rpc HandleTransaction (TransactionRequest) returns (TransactionResponse);
+}
+
+message TransactionRequest {
+  int32 transactionHistoryId = 1;
+  double total = 2;  
+}
+
+message TransactionResponse {
+  string message = 1;
+}

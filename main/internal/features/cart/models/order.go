@@ -10,12 +10,6 @@ type Order struct {
 	Quantity  int       `json:"quantity"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-
-	User       User                 `json:"user,omitempty"`
-	Product    Product              `json:"product,omitempty"`
-	Status     OrderStatus          `json:"status,omitempty"`
-	OrderItems []TransactionHistory `json:"order_items,omitempty"`
-	Payments   []Payment            `json:"payments,omitempty"`
 }
 
 type OrderStatus struct {

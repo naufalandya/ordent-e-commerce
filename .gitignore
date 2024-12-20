@@ -15,3 +15,6 @@ Thumbs.db
 # Ignore IDE files
 .vscode/
 .idea/
+
+# Ignore node_modules in all subdirectories
+**/dist/

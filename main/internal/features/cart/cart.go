@@ -1,13 +1,18 @@
 package cart
 
 import (
+	"commerce/generated"
 	"commerce/internal/features/cart/models"
 	"commerce/internal/features/cart/services"
+	"context"
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func CreateOrderHandler(c *fiber.Ctx) error {
@@ -65,6 +70,8 @@ func CreateOrderHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	fmt.Println(userID)
+
 	order, err := services.CreateOrder(userID, requestBody.ProductID, requestBody.Quantity)
 	if err != nil {
 		log.Println("Error creating order:", err)
@@ -74,7 +81,7 @@ func CreateOrderHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	err = services.CreateTransactionHistory(order.ID, product.Price, order.Quantity)
+	transactionID, total, err := services.CreateTransactionHistory(order.ID, product.Price, order.Quantity)
 	if err != nil {
 		log.Println("Error creating transaction history:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseCartFailed{
@@ -83,9 +90,46 @@ func CreateOrderHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("did not connect: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseCartFailed{
+			Status:  "error",
+			Message: "Failed to connect to gRPC server.",
+		})
+	}
+	defer conn.Close()
+
+	totalFloat64, exact := total.Float64()
+	if !exact {
+		// Handle the case where the conversion was not exact
+		// For example, you might want to log a warning or handle the precision loss
+		fmt.Println("Warning: Conversion from decimal to float64 was not exact")
+	}
+
+	client := generated.NewTransactionServiceClient(conn)
+
+	req := &generated.TransactionRequest{
+		TransactionHistoryId: int32(transactionID),
+		Total:                totalFloat64,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	res, err := client.HandleTransaction(ctx, req)
+	if err != nil {
+		log.Printf("Error calling gRPC service: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ApiResponseCartFailed{
+			Status:  "error",
+			Message: "Failed to send transactionHistoryId to gRPC server.",
+		})
+	}
+
+	log.Printf("Response from gRPC server: %s", res.Message)
+
 	return c.Status(fiber.StatusCreated).JSON(models.ApiResponseCartSuccess{
 		Status:  "success",
-		Message: "Order created successfully.",
+		Message: "Order created and transaction history sent successfully.",
 		Data:    order,
 	})
 }

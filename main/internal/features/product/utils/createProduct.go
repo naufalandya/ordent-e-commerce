@@ -21,11 +21,21 @@ func CreateErrorResponse(c *fiber.Ctx, status int, message string) error {
 
 func ParseUserID(c *fiber.Ctx) (int, error) {
 	userIDInterface := c.Locals("user_id")
-	userIDStr, ok := userIDInterface.(string)
-	if !ok {
-		return 0, fmt.Errorf("invalid user ID format")
+
+	fmt.Printf("user_id from context: %v, type: %T\n", userIDInterface, userIDInterface)
+
+	switch v := userIDInterface.(type) {
+	case string:
+		userID, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, fmt.Errorf("invalid user ID format: %w", err)
+		}
+		return userID, nil
+	case float64:
+		return int(v), nil
+	default:
+		return 0, fmt.Errorf("user ID not found or invalid type")
 	}
-	return strconv.Atoi(userIDStr)
 }
 
 func HandleValidationErrors(err error) []string {

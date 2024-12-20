@@ -25,7 +25,7 @@ func CreateProduct(product *models.Product) error {
 	`
 
 	var newProductID int
-	var description string
+	var description, category string
 	var createdAt, updatedAt time.Time
 
 	err := repositories.DB.QueryRow(context.Background(), productQuery,
@@ -35,18 +35,16 @@ func CreateProduct(product *models.Product) error {
 		product.Price,
 		product.Stock,
 		product.Category,
-	).Scan(&newProductID, &description, &createdAt, &updatedAt)
+	).Scan(&newProductID, &description, &category, &createdAt, &updatedAt)
 
-	if err := handleDBError(productQuery, []interface{}{product.Name, product.Description, product.UserID, product.Price, product.Stock, product.Category}, err); err != nil {
+	if err != nil {
+		handleDBError(productQuery, []interface{}{product.Name, product.Description, product.UserID, product.Price, product.Stock, product.Category}, err)
 		return err
-	}
-
-	if description == "" {
-		description = "No description available"
 	}
 
 	product.ID = newProductID
 	product.Description = description
+	product.Category = category
 	product.CreatedAt = createdAt
 	product.UpdatedAt = updatedAt
 
